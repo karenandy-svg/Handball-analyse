@@ -39,3 +39,11 @@ assert.equal(run(`validImport({...db,teams:db.teams.map(t=>({...t,players:t.play
 assert.equal(run(`validImport({...db,games:db.games.map(g=>({...g,events:undefined,shots:g.shots.map(s=>({...s,result:'Geblockt'}))}))})`),true);
 run(`editId=null;selectedTeam='h';draft={player:'7',result:'Gehalten',zone:2};saveShot()`);assert.equal(run('game().shots.length'),1);
 console.log('Passed: field segments, turnovers, team switches, LH/TW, goalkeeper history, optional TW-only selection, legacy backups, CSV and idempotent H4 import.');
+vm.runInContext(fs.readFileSync('dist/match.js','utf8'),ctx);
+run(`editId=null;selectedTeam='h';draft={player:'7'};completeShot('Tor')`);assert.equal(run('game().shots.length'),1);
+run(`draft={player:'7',origin:'Kreis Mitte',zone:4};completeShot('Tor');completeShot('Tor')`);assert.equal(run('game().shots.length'),2);assert.equal(run('selectedTeam'),'a');assert.equal(run('game().shots.at(-1).result'),'Tor');
+run(`selectedTeam='h';draft={player:'7',origin:'7 Meter',zone:1};completeShot('Gehalten')`);assert.equal(run('game().shots.length'),3);assert.equal(run('selectedTeam'),'h');
+run(`draft={player:'7',origin:'Rechtsaußen',zone:8};completeShot('Daneben')`);assert.equal(run('game().shots.length'),4);assert.equal(run('selectedTeam'),'h');
+run(`editId=game().shots.at(-1).id;draft={...game().shots.at(-1)};completeShot('Tor')`);assert.equal(run('game().shots.length'),4);assert.equal(run('selectedTeam'),'h');
+assert.ok(!run('liveView(game())').includes('Wurf speichern'));assert.ok(!run('liveView(game())').includes('Verwerfen'));assert.ok(!run('liveView(game())').includes('handballfeld.jpg'));
+console.log('Passed: direct result saving, incomplete input guard, no duplicate save, goal-only team switch, corrections and no obsolete controls.');

@@ -9,11 +9,11 @@ Web-App für die manuelle Handballanalyse auf dem iPad. Verwaltet Mannschaften, 
 3. Mannschaft und Spieler links wählen.
 4. Das Feldsegment der Wurfposition antippen (Stift, Finger oder Maus).
 5. Eines der neun Torsegmente antippen (aus Sicht des Werfers).
-6. **Tor**, **Gehalten** oder **Daneben** auswählen und **Wurf speichern** drücken.
+6. **Tor**, **Gehalten** oder **Daneben** antippen. Der Wurf wird sofort gespeichert; die Ergebnisschaltflächen werden erst nach Spieler, Feldsegment und Torsegment freigegeben.
 
 Der Spielstand ergibt sich aus den erfassten Toren. Die Spieluhr lässt sich starten, pausieren und direkt anpassen. Beim Antippen des Feldsegments wird die Wurfzeit vorgemerkt. **Technischer Fehler** und **Ballverlust** speichern sofort ein eigenes Ereignis mit Spielzeit und ausgewähltem Spieler (sonst „?“), ohne Feldsegment, Torsegment oder Wurf. Danach wechselt die angreifende Mannschaft. Tore wechseln die Mannschaft ebenfalls; gehaltene und daneben gegangene Würfe sowie Korrekturen nicht. Unter **Spielverlauf** lassen sich Würfe und Ereignisse korrigieren oder löschen. Frühere Laufwege bleiben in vorhandenen Daten und Sicherungen erhalten; neue Einträge benötigen keinen Laufweg.
 
-Die Spielansicht ist für iPads im Querformat ohne Seiten-Scrollen ausgelegt. Sehr große Kader haben eine separat scrollbare Nummernliste; auf Smartphones ist die Ansicht gestapelt. Das Spielfeld stammt aus dem vom Nutzer bereitgestellten Bild `Handballfeld.jpg`.
+Die Spielansicht ist für iPads im Querformat ohne Seiten-Scrollen ausgelegt. Sehr große Kader haben eine separat scrollbare Nummernliste; auf Smartphones ist die Ansicht gestapelt. Das Spielfeld verwendet eine klare SVG-Darstellung mit einer einzigen Segmentaufteilung; das ursprüngliche Referenzbild bleibt in der Ablage erhalten.
 
 ## Daten & Offlinebetrieb
 
