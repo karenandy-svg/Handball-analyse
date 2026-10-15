@@ -2,3 +2,5 @@ site.zip
 .DS_Store
 node_modules/
 .openai/local/
+output/
+__pycache__/
