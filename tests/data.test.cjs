@@ -17,9 +17,9 @@ assert.throws(()=>run(String.raw`parseTeamCsv('Mannschaft;Nummer;Name\nTSV;7;Max
 assert.equal(run(`validImport({...db,games:db.games.map(g=>({...g,shots:g.shots.map(s=>({...s,path:[{x:2,y:.5}]}))}))})`),false);
 assert.equal(run(`validImport({...db,games:db.games.map(g=>({...g,shots:g.shots.map(({path,...s})=>s)}))})`),true);
 assert.equal(run(`validImport({version:1,teams:[],games:[{id:'bad'}]})`),false);
-run(`filter.team='a'`);assert.equal(run('filtered().length'),0);assert.ok(store.get('wurfbild-v1'));
+run(`filter.teams=['a']`);assert.equal(run('filtered().length'),0);assert.ok(store.get('wurfbild-v1'));
 let nextId=1;ctx.crypto.randomUUID=()=>`new-${nextId++}`;
-run(`filter={team:'',player:'',game:''};selectedTeam='h';draft={player:'7',origin:'Rückraum Mitte',zone:1,result:'Gehalten',path:[{x:.2,y:.8},{x:.4,y:.5}]};saveShot()`);
+run(`filter={teams:[],games:[]};selectedTeam='h';draft={player:'7',origin:'Rückraum Mitte',zone:1,result:'Gehalten',path:[{x:.2,y:.8},{x:.4,y:.5}]};saveShot()`);
 assert.equal(run('selectedTeam'),'h');assert.equal(run('game().shots.at(-1).keeper'),'16');
 run(`draft={player:'7',origin:'Rückraum Mitte',zone:1,result:'Tor',path:[{x:.2,y:.8},{x:.4,y:.5}]};saveShot()`);
 assert.equal(run('selectedTeam'),'a');assert.equal(run('game().shots[0].keeper'),'12');
@@ -47,3 +47,15 @@ run(`draft={player:'7',origin:'Rechtsaußen',zone:8};completeShot('Daneben')`);a
 run(`editId=game().shots.at(-1).id;draft={...game().shots.at(-1)};completeShot('Tor')`);assert.equal(run('game().shots.length'),4);assert.equal(run('selectedTeam'),'h');
 assert.ok(!run('liveView(game())').includes('Wurf speichern'));assert.ok(!run('liveView(game())').includes('Verwerfen'));assert.ok(!run('liveView(game())').includes('handballfeld.jpg'));
 console.log('Passed: direct result saving, incomplete input guard, no duplicate save, goal-only team switch, corrections and no obsolete controls.');
+
+vm.runInContext(fs.readFileSync('dist/analysis.js','utf8'),ctx);
+run(`db={version:1,teams:[{id:'h',name:'Heim',players:[{number:'7',name:'Heimspieler',leftHanded:true},{number:'1',name:'Heimkeeper',isKeeper:true}]},{id:'a',name:'Gast',players:[{number:'7',name:'Gastspieler'},{number:'12',name:'Gastkeeper',isKeeper:true}]}],games:[{id:'g1',home:'h',away:'a',date:'2026-10-15',shots:[{team:'h',player:'7',origin:'Rückraum links',zone:2,result:'Tor',keeper:'12',keeperTeam:'a'},{team:'a',player:'7',origin:'Kreis links',zone:3,result:'Gehalten',keeper:'1',keeperTeam:'h'}],events:[{team:'h',player:'7',result:'Ballverlust'},{team:'h',player:'7',result:'Technischer Fehler'},{team:'a',player:'7',result:'Ballverlust'}]},{id:'g2',home:'a',away:'h',date:'2026-10-16',shots:[{team:'h',player:'7',origin:'Rückraum links',zone:2,result:'Gehalten',keeper:'12',keeperTeam:'a'},{team:'a',player:'7',origin:'Kreis links',zone:3,result:'Tor',keeper:'1',keeperTeam:'h'}],events:[{team:'h',player:'7',result:'Ballverlust'}]},{id:'g3',home:'a',away:'h',date:'2026-10-17',shots:[{team:'a',player:'7',origin:'Rechtsaußen',zone:5,result:'Tor',keeper:'1',keeperTeam:'h'}],events:[]}]};filter={teams:['h'],games:['g1','g2']}`);
+assert.equal(run('filtered().length'),2);assert.equal(run('keeperRows().length'),1);assert.equal(run('keeperRows()[0].team'),'h');assert.equal(run('keeperRows()[0].number'),'1');assert.equal(run('keeperRows()[0].saved'),1);assert.equal(run('keeperRows()[0].goals'),1);
+assert.equal(run('eventSummary(filteredEvents()).find(p=>p.player==="7").losses'),2);assert.equal(run('eventSummary(filteredEvents()).find(p=>p.player==="7").errors'),1);assert.equal(run('eventSummary(filteredEvents()).find(p=>p.player==="7").total'),3);
+assert.equal(run('routesFor(filtered()).length'),1);assert.equal(run('routesFor(filtered())[0].count'),2);assert.equal(run('routesFor(filtered())[0].goals'),1);
+assert.equal(run(`routesFor([...filtered(),{origin:null,zone:2},{origin:'Linksaußen',zone:null}])[0].count`),2);
+assert.ok(!run('analysisView()').includes('filter-player'));assert.ok(!run('eventsTable(filteredEvents())').includes('<th>Zeit</th>'));assert.ok(run('heatmapSvg(filtered())').includes('2 Würfe, 1 Tore'));
+run(`filter.teams=['h','a']`);assert.equal(run('filtered().length'),4);assert.equal(run('keeperRows().length'),2);assert.equal(run('filteredEvents().length'),4);
+run(`filter.games=['g2']`);assert.equal(run('filtered().length'),2);run(`filter={teams:[],games:[]}`);assert.equal(run('filtered().length'),5);assert.equal(run("keeperRows().find(k=>k.team==='h').goals"),2);
+let exported='';ctx.captureCsv=(name,data)=>{exported=data};run(`download=captureCsv;filter={teams:['h','a'],games:['g1','g2']};csv()`);assert.ok(exported.includes('Heimspieler'));assert.ok(exported.includes('Gastspieler'));assert.ok(!exported.includes('2026-10-17'));
+console.log('Passed: own-team keepers, multiple team/game intersection, all selections, separate same-number players, event totals, aggregated heatmap routes, missing segments and CSV filters.');

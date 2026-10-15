@@ -64,3 +64,13 @@ python3 tools/import_handball4all.py --org 216 --league 161291 --half-minutes 25
 Danach unter **Spiele → Handball4all-Spiel importieren** die erzeugte Datei `output/handball4all-161291.json` auswählen und ein Spiel übernehmen. Die Datei enthält den Spielplan sowie die erfolgreich geprüften Berichte. Berichte mit unklarer Namenszuordnung, fehlenden Kadern oder abweichender Torfolge werden nicht als geprüft übernommen. Nicht gespielte Partien können ohne Kader vorliegen. Ein erneuter Import derselben Liga/Saison/Spiel-ID aktualisiert die Vergleichsdaten und erhält eigene Würfe und Torhüter. Bei widersprüchlichen Spielernamen derselben Nummer stoppt der Import zur manuellen Prüfung.
 
 Offizielle Tore bleiben in `referenceGoals` getrennt von eigenen Würfen. **Abgleich** zeigt Endstand und Zuordnungsvorschläge anhand Team, Rückennummer und maximal 10 Sekunden Zeitabweichung. Das erzeugt keine erfundenen Feld- oder Torsegmente. Automatische Erkennung der Spielanzeige im Video ist noch nicht angeschlossen. Generierte Liga- und Personendaten in `output/` sind von Git und der Website-Veröffentlichung ausgeschlossen.
+
+## Auswertung und Wurfbilder
+
+Unter **Auswertung** lassen sich Mannschaften und Spiele jeweils mehrfach auswählen. Standardmäßig sind alle enthalten; **Übernehmen** wendet die Auswahl an. Der Spielerfilter wurde durch antippbare Zeilen im Spielervergleich ersetzt. Ein Spieler-Wurfbild verwendet dieselbe Spielauswahl und trennt auch bei gleicher Rückennummer nach Mannschaft.
+
+Jeder neue Wurf speichert bereits Feldsegment (`origin`) und Torsegment (`zone`). Das Wurfbild verbindet deren Mittelpunkte. Gleiche Verbindungen werden mit Anzahl und Toren zusammengefasst, durch dickere Linien und eine stärkere rote Färbung hervorgehoben und zusätzlich als Tabelle aufgelistet. Alle Wurfergebnisse zählen zur Häufigkeit. Ältere Einträge ohne vollständige Segmente bleiben in Statistiken und Sicherungen erhalten; die Grafik weist sie als fehlend aus und erfindet keine Positionen.
+
+Die Torhüterauswertung filtert nach **Torhüter-Mannschaft** (`keeperTeam`), unabhängig vom Filter auf angreifende Mannschaften in der Wurfstatistik. Sie zählt gegnerische Würfe aus den gewählten Spielen. Bei mehreren ausgewählten Mannschaften werden deren Torhüter gemeinsam, aber getrennt nach Mannschaft und Nummer angezeigt.
+
+**Ereignisse ohne Wurf** zeigt je Spieler Ballverluste, technische Fehler und deren Summe sowie eine Gesamtzeile. Spieler ohne Ereignisse werden mit null angezeigt; unbekannte Spieler erhalten eine eigene Zeile. Diese Ereignisse verändern keine Wurfquoten. Der CSV-Export berücksichtigt dieselbe Mannschafts- und Spielauswahl.
