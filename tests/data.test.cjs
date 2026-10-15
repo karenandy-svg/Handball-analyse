@@ -1,0 +1,15 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const el={innerHTML:'',textContent:'',style:{},classList:{toggle(){}},addEventListener(){},querySelector(){return null}};
+const store=new Map();const ctx=vm.createContext({document:{querySelector:()=>el,querySelectorAll:()=>[],body:el},navigator:{onLine:true},window:{addEventListener(){}},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},crypto:{randomUUID:()=> 'shot-id'},setTimeout:()=>0,clearInterval(){},alert:msg=>{throw Error(msg)},console});
+vm.runInContext(fs.readFileSync('dist/app.js','utf8'),ctx);
+const run=s=>vm.runInContext(s,ctx);
+run(`db={version:1,teams:[{id:'h',name:'Heim',players:[{number:'7',name:'Spieler'}]},{id:'a',name:'Gast',players:[]}],games:[{id:'g',home:'h',away:'a',date:'2026-10-15',elapsed:0,period:1,finished:false,shots:[]}]};activeGame='g';selectedTeam='h';draft={player:'7',zone:2,result:'Tor',throwTime:'12:34',path:[{x:.3,y:.8},{x:.4,y:.5}]};saveShot()`);
+assert.equal(run('filtered().length'),1);assert.equal(run('game().shots[0].zone'),2);assert.equal(run('game().shots[0].time'),'12:34');assert.equal(run('game().shots[0].path[1].x'),.4);
+assert.equal(run('validImport(JSON.parse(JSON.stringify(db)))'),true);
+run(`editId=game().shots[0].id;draft={...game().shots[0],zone:0,result:'Gehalten'};saveShot()`);
+assert.equal(run('game().shots.length'),1);assert.equal(run('game().shots[0].result'),'Gehalten');assert.equal(run('game().shots[0].time'),'12:34');
+assert.equal(run(`validImport({...db,games:db.games.map(g=>({...g,shots:g.shots.map(s=>({...s,path:[{x:2,y:.5}]}))}))})`),false);
+assert.equal(run(`validImport({...db,games:db.games.map(g=>({...g,shots:g.shots.map(({path,...s})=>s)}))})`),true);
+assert.equal(run(`validImport({version:1,teams:[],games:[{id:'bad'}]})`),false);
+run(`filter.team='a'`);assert.equal(run('filtered().length'),0);assert.ok(store.get('wurfbild-v1'));
+console.log('Passed: shot, normalized path, event time, correction, legacy backups, invalid path rejection, filter and persistence.');
