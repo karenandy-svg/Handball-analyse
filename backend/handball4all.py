@@ -92,20 +92,20 @@ def parse_rosters(text):
     teams = {}
     side = None
     for line in section.splitlines():
-        heading = re.match(r"^\\s*(Heim|Gast):\\s*(.+?)\\s*$", line)
+        heading = re.match(r"^\s*(Heim|Gast):\s*(.+?)\s*$", line)
         if heading:
             side = "home" if heading.group(1) == "Heim" else "away"
             teams[side] = {"name": heading.group(2), "players": []}
             continue
         if side is None:
             continue
-        match = re.match(r"^\\s*(\\d{1,2})\\s+(.+?)\\s*$", line)
+        match = re.match(r"^\s*(\d{1,2})\s+(.+?)\s*$", line)
         if not match:
             continue
         number, rest = match.groups()
         # Only parse the initial name columns; trailing statistics start at
         # wide whitespace. Avoid treating staff rows A-E as players.
-        name = re.split(r"\\s{2,}", rest.strip(), maxsplit=1)[0].strip()
+        name = re.split(r"\s{2,}", rest.strip(), maxsplit=1)[0].strip()
         if not name or name.isdecimal() or len(name) > 100:
             continue
         teams[side]["players"].append({"number": int(number), "name": name})
@@ -120,7 +120,7 @@ def parse_rosters(text):
 
 @router.get("/report/{report_id}/rosters")
 def report_rosters(report_id: str, user=Depends(authenticated_user)):
-    if not re.fullmatch(r"[1-9]\\d{0,9}", report_id):
+    if not re.fullmatch(r"[1-9]\d{0,9}", report_id):
         raise HTTPException(422, "Invalid report ID")
     try:
         import pymupdf
@@ -139,7 +139,7 @@ def report_rosters(report_id: str, user=Depends(authenticated_user)):
         with pymupdf.open(stream=pdf, filetype="pdf") as doc:
             if len(doc) > 20:
                 raise ValueError("Unexpected PDF size")
-            text = "\\n".join(page.get_text(sort=True) for page in doc)
+            text = "\n".join(page.get_text(sort=True) for page in doc)
         return {"reportId": report_id, "rosters": parse_rosters(text)}
     except (OSError, ValueError, TypeError) as exc:
         raise HTTPException(502, "Handball4all report unavailable or unrecognized") from exc
