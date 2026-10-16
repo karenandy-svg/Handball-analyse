@@ -20,7 +20,7 @@ class AuthTests(unittest.TestCase):
                        ("admin", hash_password("long-secure-test-password"), "admin"))
             db.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",
                        ("trainer", hash_password("another-secure-test-password"), "trainer"))
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="https://wurfbilder.duckdns.org")
 
     def tearDown(self):
         self.client.close()
