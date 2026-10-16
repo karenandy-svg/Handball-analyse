@@ -5,9 +5,17 @@ from pathlib import Path
 
 DB_PATH = Path(os.environ.get("WURFBILD_DB_PATH", "/var/lib/wurfbild/auth.sqlite3"))
 
+class ManagedConnection(sqlite3.Connection):
+    """Commit/rollback and always close on leaving a with-block."""
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
+
 def connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=10, factory=ManagedConnection)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=10000")
