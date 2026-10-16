@@ -9,8 +9,13 @@ import urllib.request
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
-from .main import current_user
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+def authenticated_user(request: Request):
+    # Resolve at request time to avoid circular imports during module loading.
+    from .main import current_user
+    return current_user(request)
+
 
 router = APIRouter(prefix="/api/handball4all")
 ORG = "216"
@@ -57,7 +62,7 @@ def parse_schedule(payload):
 
 
 @router.get("/schedule")
-def schedule(user=Depends(current_user)):
+def schedule(user=Depends(authenticated_user)):
     params = urllib.parse.urlencode({
         "cmd": "ps", "og": ORG, "cl": LEAGUE, "ca": "1",
         "do": datetime.now(BERLIN).strftime("%Y-%m-%d"),
