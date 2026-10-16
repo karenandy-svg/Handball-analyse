@@ -28,25 +28,39 @@ async function h4ImportAll(){
 }
 async function h4FillRoster(id){
  try{
- const g=db.games.find(x=>x.id===id),schedule=await h4Get('/api/handball4all/schedule');
+ const g=db.games.find(x=>x.id===id);
  if(!g?.referenceSource)throw Error('Kein Handball4all-Spiel');
- let added=0;
+ const schedule=await h4Get('/api/handball4all/schedule');
+ let added=0,conflicts=[];
  for(const teamId of [g.home,g.away]){
  const t=team(teamId);
- const previous=schedule.games.filter(x=>x.reportId&&(x.home===t.name||x.away===t.name)).sort((a,b)=>h4IsoDate(b.date).localeCompare(h4IsoDate(a.date)));
+ if(!t)continue;
+ const previous=schedule.games.filter(x=>x.reportId&&(x.home===t.name||x.away===t.name)&&h4IsoDate(x.date)<g.date).sort((a,b)=>h4IsoDate(b.date).localeCompare(h4IsoDate(a.date)));
  for(const candidate of previous.slice(0,5)){
- try{
- const report=await h4Get('/api/handball4all/report/'+encodeURIComponent(candidate.reportId)+'/rosters');
+ let report;
+ try{report=await h4Get('/api/handball4all/report/'+encodeURIComponent(candidate.reportId)+'/rosters')}
+ catch(e){console.warn('Bericht übersprungen',candidate.reportId,e);continue}
  const side=candidate.home===t.name?'home':'away';
- for(const p of report.rosters[side].players){
- const number=String(p.number);
- if(!t.players.some(x=>String(x.number)===number)){t.players.push({number,name:p.name});added++}
+ const players=report.rosters?.[side]?.players||[];
+ if(!players.length)continue;
+ for(const p of players){
+ const number=String(p.number),name=p.name.trim();
+ const byNumber=t.players.find(x=>String(x.number)===number);
+ const byName=t.players.find(x=>x.name?.trim().toLocaleLowerCase('de')===name.toLocaleLowerCase('de'));
+ if(byNumber){
+ if(byNumber.name?.trim().toLocaleLowerCase('de')!==name.toLocaleLowerCase('de'))conflicts.push(t.name+': #'+number+' '+name+' / '+(byNumber.name||'ohne Namen'));
+ continue;
+ }
+ if(byName){if(String(byName.number)!==number)conflicts.push(t.name+': '+name+' mit #'+byName.number+' und #'+number);continue}
+ t.players.push({number,name});added++;
  }
  t.players.sort((a,b)=>Number(a.number)-Number(b.number));break;
- }catch(e){console.warn('Bericht übersprungen',candidate.reportId,e)}
  }
  }
- persist();render();toast(added+' Spieler ergänzt; bitte Kader prüfen');
+ persist();render();
+ if(conflicts.length){
+ modal('<h2>Kaderimport: Zuordnung prüfen</h2><p class="muted">Bestehende Spieler wurden nicht verändert. Diese Nummern oder Namen konnten nicht automatisch zugeordnet werden:</p><div class="tablewrap"><ul>'+conflicts.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div><p>'+added+' neue Spieler ergänzt.</p><div class="dialog-actions"><button data-close>Schließen</button></div>');
+ }else toast(added+' neue Spieler ergänzt; bestehende unverändert');
  }catch(e){toast(e.message)}
 }
 const oldH4GamesView=gamesView;
