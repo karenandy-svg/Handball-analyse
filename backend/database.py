@@ -33,3 +33,5 @@ def initialize():
             );
             CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
         """)
+        schema = Path(__file__).with_name("sync_schema.sql").read_text(encoding="utf-8")
+        db.executescript(schema)
