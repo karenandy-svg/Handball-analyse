@@ -1,1 +1,9 @@
-const CACHE='wurfbild-shell-v6';const FILES=['/','/index.html','/style.css','/app.js','/manifest.webmanifest','/icon.svg','/match.js','/match.css','/handballfeld.jpg','/handball-court.svg','/team-features.js','/team-features.css','/h4-import.js','/analysis.js','/analysis.css'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||new URL(e.request.url).origin!==self.location.origin)return;e.respondWith(fetch(e.request).then(r=>{if(r.ok&&FILES.includes(new URL(e.request.url).pathname)){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request).then(r=>r||(e.request.mode==='navigate'?caches.match('/index.html'):Response.error()))))});
+// Authenticated WURFBILD: do not cache protected pages, scripts or user data.
+// Offline editing will use a dedicated IndexedDB queue in a later phase.
+self.addEventListener('install', event => { self.skipWaiting(); });
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', event => {
+  // Let the browser handle all requests online. No offline fallback for now.
+});
