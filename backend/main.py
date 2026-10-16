@@ -142,3 +142,4 @@ def serve_app(asset_path: str, request: Request):
     response = FileResponse(target)
     response.headers["Cache-Control"] = "no-store, private"
     return response
+\n# Register shared-data routes after authentication functions are defined.\nfrom .shared import router as shared_router\napp.include_router(shared_router)\n
