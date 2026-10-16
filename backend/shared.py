@@ -43,6 +43,23 @@ def create_team(payload: Record, request: Request, user=Depends(current_user)):
         raise HTTPException(409, "Team already exists")
     return {"id": payload.id, "version": 1}
 
+class TeamUpdate(BaseModel):
+    data: dict
+    base_version: int = Field(ge=1)
+
+@router.put("/teams/{team_id}")
+def update_team(team_id: str, payload: TeamUpdate, request: Request, user=Depends(current_user)):
+    check_origin(request)
+    with connect() as db:
+        result = db.execute(
+            "UPDATE shared_teams SET data=?, version=version+1 WHERE id=? AND version=?",
+            (json.dumps(payload.data), team_id, payload.base_version),
+        )
+        if result.rowcount != 1:
+            exists = db.execute("SELECT 1 FROM shared_teams WHERE id=?", (team_id,)).fetchone()
+            raise HTTPException(409 if exists else 404, "Team version conflict" if exists else "Team not found")
+    return {"id": team_id, "version": payload.base_version + 1}
+
 @router.get("/games")
 def list_games(user=Depends(current_user)):
     with connect() as db:
