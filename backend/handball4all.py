@@ -47,7 +47,7 @@ def parse_schedule(payload):
         "league": LEAGUE,
         "season": str(root.get("menu", {}).get("period", {}).get("selectedID") or ""),
         "games": [
-            {"externalId": gid, "home": str(g["gHomeTeam"]), "away": str(g["gGuestTeam"]),
+            {"externalId": gid, "reportId": str(g.get("sGID") or ""), "home": str(g["gHomeTeam"]), "away": str(g["gGuestTeam"]),
              "date": str(g.get("gDate") or ""), "time": str(g.get("gTime") or ""),
              "homeGoals": g.get("gHomeGoals"), "awayGoals": g.get("gGuestGoals"),
              "venue": str(g.get("gGymnasiumName") or ""), "gameNumber": str(g.get("gNo") or "")}
