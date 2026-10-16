@@ -119,6 +119,8 @@ def create_user(payload: NewUser, request: Request, admin=Depends(require_admin)
 # Register API routes before the catch-all static GET route.
 from .shared import router as shared_router
 app.include_router(shared_router)
+from .handball4all import router as handball4all_router
+app.include_router(handball4all_router)
 
 # Nginx must proxy ALL paths here, never expose the dist directory directly.
 STATIC_ROOT = Path(__file__).resolve().parent.parent / "dist"
