@@ -8,3 +8,55 @@ gamesView=function(){return gamesBeforeH4().replace('<div class="card">','<div c
 const bindBeforeH4=bind;
 bind=function(){bindBeforeH4();if($('#h4-import'))$('#h4-import').onclick=h4Dialog;document.querySelectorAll('[data-reference]').forEach(b=>b.onclick=()=>referenceDialog(db.games.find(g=>g.id===b.dataset.reference)))};
 render();
+
+
+function h4IsoDate(v){const m=/^(\d\d)\.(\d\d)\.(\d\d)$/.exec(v||'');if(!m)throw Error('Ungültiges Datum: '+v);return '20'+m[3]+'-'+m[2]+'-'+m[1]}
+async function h4Get(url){const r=await fetch(url,{credentials:'same-origin'});if(!r.ok)throw Error('Abruf fehlgeschlagen: '+r.status);return r.json()}
+async function h4ImportAll(){
+ try{
+ const data=await h4Get('/api/handball4all/schedule');
+ if(data.league!=='161291'||!data.season||!Array.isArray(data.games))throw Error('Falsche Liga');
+ const base={organization:data.organization,league:data.league,season:data.season,halfMinutes:25,exportedAt:new Date().toISOString()};
+ let added=0;
+ for(const raw of data.games){
+ const g={externalId:raw.externalId,reportId:raw.reportId,home:raw.home,away:raw.away,date:h4IsoDate(raw.date),rosters:{home:[],away:[]},officialGoals:[],officialScore:null,reportVerified:false};
+ if(db.games.some(x=>x.externalKey===h4Key(base,g)))continue;
+ importH4Game(base,g);added++;
+ }
+ render();toast(added+' Spiele importiert');
+ }catch(e){toast(e.message);render()}
+}
+async function h4FillRoster(id){
+ try{
+ const g=db.games.find(x=>x.id===id),schedule=await h4Get('/api/handball4all/schedule');
+ if(!g?.referenceSource)throw Error('Kein Handball4all-Spiel');
+ let added=0;
+ for(const teamId of [g.home,g.away]){
+ const t=team(teamId);
+ const previous=schedule.games.filter(x=>x.reportId&&(x.home===t.name||x.away===t.name)).sort((a,b)=>h4IsoDate(b.date).localeCompare(h4IsoDate(a.date)));
+ for(const candidate of previous.slice(0,5)){
+ try{
+ const report=await h4Get('/api/handball4all/report/'+encodeURIComponent(candidate.reportId)+'/rosters');
+ const side=candidate.home===t.name?'home':'away';
+ for(const p of report.rosters[side].players){
+ const number=String(p.number);
+ if(!t.players.some(x=>String(x.number)===number)){t.players.push({number,name:p.name});added++}
+ }
+ t.players.sort((a,b)=>Number(a.number)-Number(b.number));break;
+ }catch(e){console.warn('Bericht übersprungen',candidate.reportId,e)}
+ }
+ }
+ persist();render();toast(added+' Spieler ergänzt; bitte Kader prüfen');
+ }catch(e){toast(e.message)}
+}
+const oldH4GamesView=gamesView;
+gamesView=function(){
+ return oldH4GamesView().replace('id="h4-import">','id="h4-import">').replace('↑ Handball4all-Spiel importieren</button>','↑ Handball4all-Spiel importieren</button><button id="h4-import-all">Ligaspiele direkt laden</button>').replace(/(<button data-reference="([^"]+)">Abgleich<\/button>)/g, '<button data-h4-roster="$2">Kader laden</button>$1');
+};
+const oldH4Bind=bind;
+bind=function(){
+ oldH4Bind();
+ if($('#h4-import-all'))$('#h4-import-all').onclick=h4ImportAll;
+ document.querySelectorAll('[data-h4-roster]').forEach(b=>b.onclick=()=>h4FillRoster(b.dataset.h4Roster));
+};
+render();
