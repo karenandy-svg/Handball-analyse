@@ -1,11 +1,13 @@
 """Phase 1: authentication API. Do not expose the existing static app until protected routing is configured."""
 import os
+from pathlib import Path
 import re
 import sqlite3
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from .database import connect, initialize
 from .security import hash_password, new_session_token, token_hash, verify_password
@@ -113,3 +115,30 @@ def create_user(payload: NewUser, request: Request, admin=Depends(require_admin)
         raise HTTPException(422, str(error)) from error
     except sqlite3.IntegrityError:
         raise HTTPException(409, "Username already exists")
+
+# Nginx must proxy ALL paths here, never expose the dist directory directly.
+STATIC_ROOT = Path(__file__).resolve().parent.parent / "dist"
+PUBLIC_FILES = {"/login.html", "/login.css", "/login.js", "/icon.svg"}
+
+@app.get("/{asset_path:path}", include_in_schema=False)
+def serve_app(asset_path: str, request: Request):
+    requested = "/" + asset_path
+    if requested == "/login":
+        requested = "/login.html"
+    if requested in PUBLIC_FILES:
+        target = STATIC_ROOT / requested.lstrip("/")
+    else:
+        try:
+            current_user(request)
+        except HTTPException:
+            return RedirectResponse("/login.html", status_code=303)
+        if requested in ("/", "/index.html"):
+            requested = "/index.html"
+        target = (STATIC_ROOT / requested.lstrip("/")).resolve()
+        if not target.is_relative_to(STATIC_ROOT.resolve()):
+            raise HTTPException(404)
+    if not target.is_file():
+        raise HTTPException(404)
+    response = FileResponse(target)
+    response.headers["Cache-Control"] = "no-store, private"
+    return response
